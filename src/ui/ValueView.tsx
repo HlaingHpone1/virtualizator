@@ -1,11 +1,12 @@
+import { Handle, Position } from '@xyflow/react';
 import type { Value } from '../runtime/types';
 import { describeValue, formatAddr } from '../runtime/values';
 
 /**
  * Renders what a slot actually contains. A primitive shows its value;
- * a reference shows a dot that an arrow is drawn from (data-ref).
+ * a reference shows a dot, which is the React Flow handle its arrow starts from.
  */
-export function ValueView({ value }: { value: Value }) {
+export function ValueView({ value, handleId }: { value: Value; handleId?: string }) {
   if (value.kind === 'uninit') return <span className="val val-uninit" title="Not initialized yet">?</span>;
   if (value.kind === 'prim') {
     return (
@@ -18,7 +19,11 @@ export function ValueView({ value }: { value: Value }) {
   return (
     <span className="val val-ref" title={`Reference: holds the address ${formatAddr(value.addr)}`}>
       <span className="ref-addr">{formatAddr(value.addr)}</span>
-      <span className="ref-dot" data-ref={value.addr} />
+      {handleId ? (
+        <Handle type="source" position={Position.Right} id={handleId} className="ref-dot ref-handle" isConnectable={false} />
+      ) : (
+        <span className="ref-dot" />
+      )}
     </span>
   );
 }

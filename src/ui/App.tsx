@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXAMPLES } from '../examples';
 import { run } from '../runtime/interpreter';
 import type { RunResult } from '../runtime/types';
-import { Arrows } from './Arrows';
 import { CodeEditor, type LineMark } from './CodeEditor';
 import { Controls } from './Controls';
 import { Console, Explanation, InputPanel } from './Explanation';
-import { HeapPanel } from './HeapPanel';
-import { StackPanel } from './StackPanel';
+import { MemoryFlow } from './MemoryFlow';
 
 function safeRun(code: string, input: string): RunResult {
   try {
@@ -34,7 +32,6 @@ export function App() {
   const lastRun = useRef({ code: initial.example.code, input: initial.example.input ?? '' });
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(800);
-  const memoryRef = useRef<HTMLDivElement>(null);
 
   // Re-run the program shortly after the user stops typing code or input.
   useEffect(() => {
@@ -110,7 +107,7 @@ export function App() {
       </header>
 
       <main className="layout">
-        <div className="left">
+        <div className="side-column">
           <CodeEditor
             value={code}
             mark={mark}
@@ -139,20 +136,19 @@ export function App() {
           <Console output={step?.output ?? ''} />
         </div>
 
-        <div className="memory" ref={memoryRef}>
-          {step ? (
-            <>
-              <StackPanel step={step} prev={prev} />
-              <HeapPanel step={step} prev={prev} />
-              <Arrows container={memoryRef} version={step} />
-            </>
-          ) : (
+        {step ? (
+          <MemoryFlow step={step} prev={prev} layoutKey={exampleId} runKey={result} />
+        ) : (
+          <div className="memory memory-empty">
             <p className="empty">Fix the error in the code to see memory.</p>
-          )}
-        </div>
+          </div>
+        )}
       </main>
 
       <footer className="legend">
+        <span><span className="region-tag region-tag-stack">stack</span> method frames with local variables</span>
+        <span><span className="region-tag region-tag-heap">heap</span> objects, arrays and Strings</span>
+        <span><span className="region-tag region-tag-static">static</span> class (static) fields</span>
         <span><span className="val val-prim">25</span> primitive: the value is stored right there</span>
         <span><span className="val val-ref"><span className="ref-dot static" /></span> reference: an address that points to a heap object</span>
         <span><span className="swatch garbage" /> unreachable (garbage), removed on the next step</span>

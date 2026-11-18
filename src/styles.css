@@ -18,6 +18,9 @@
   --error-bg: #fde8e7;
   --current-line: #fff3bf;
   --flash: #fde68a;
+  --region-stack: #2563eb;
+  --region-heap: #9333ea;
+  --region-static: #0d9488;
   color-scheme: light;
 }
 
@@ -42,6 +45,9 @@
     --error-bg: #3a1a19;
     --current-line: #3d3a1a;
     --flash: #5c4a12;
+    --region-stack: #6ea8ff;
+    --region-heap: #c084fc;
+    --region-static: #2dd4bf;
     color-scheme: dark;
   }
 }
@@ -66,6 +72,9 @@
   --error-bg: #3a1a19;
   --current-line: #3d3a1a;
   --flash: #5c4a12;
+  --region-stack: #6ea8ff;
+  --region-heap: #c084fc;
+  --region-static: #2dd4bf;
   color-scheme: dark;
 }
 
@@ -137,7 +146,7 @@ select {
   align-items: start;
 }
 
-.left {
+.side-column {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -150,7 +159,7 @@ select {
   .layout {
     grid-template-columns: 1fr;
   }
-  .left {
+  .side-column {
     position: static;
   }
 }
@@ -298,35 +307,85 @@ select {
   white-space: pre-wrap;
 }
 
-/* ---------- memory view ---------- */
+/* ---------- memory view (React Flow canvas) ---------- */
 
 .memory {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(220px, 2fr) 3fr;
-  gap: 56px;
+  height: calc(100vh - 150px);
+  min-height: 520px;
   min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
 }
 
-@media (max-width: 640px) {
+.memory-empty {
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 960px) {
   .memory {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    height: 75vh;
+    min-height: 420px;
   }
 }
 
-.panel {
-  min-width: 0;
+.memory .react-flow {
+  --xy-background-color: var(--bg);
+  --xy-background-pattern-color: var(--border);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-2);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-color-hover: var(--text);
+  --xy-controls-button-border-color: var(--border);
+  --xy-attribution-background-color: transparent;
 }
 
-.panel h2 {
-  margin: 0 0 10px;
+.flow-label {
   font-size: 15px;
+  font-weight: 650;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-.panel h3 {
-  margin: 16px 0 8px;
-  font-size: 13px;
+.flow-panel {
+  display: flex;
+  gap: 6px;
+}
+
+.flow-panel button {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.flow-panel button:hover {
+  border-color: var(--accent);
+}
+
+.flow-hint {
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.arrow-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.node-drag {
+  cursor: grab;
+}
+
+.react-flow__node.dragging .node-drag {
+  cursor: grabbing;
 }
 
 .hint {
@@ -346,21 +405,22 @@ select {
   padding: 4px 10px 8px;
 }
 
-.frames {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Cards sit above the arrow layer so arrows pass behind them. */
 .frame,
 .heap-card {
-  position: relative;
-  z-index: 2;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.frame {
+  width: 280px;
+}
+
+/* Rounded corners without overflow: hidden, which would clip the handles. */
+.frame-head,
+.heap-head {
+  border-radius: 8px 8px 0 0;
 }
 
 .frame-top {
@@ -388,6 +448,7 @@ select {
 .frame-line,
 .heap-addr {
   margin-left: auto;
+  white-space: nowrap;
   color: var(--muted);
   font-size: 12px;
   font-family: ui-monospace, Menlo, monospace;
@@ -461,22 +522,53 @@ select {
   background: var(--ref);
 }
 
-.statics .static-box {
+/* Reference dots are React Flow handles placed inline in their row. */
+.react-flow__handle.ref-handle {
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  transform: none;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  border: none;
+  background: var(--ref);
+  cursor: default;
+}
+
+.react-flow__handle.target-handle {
+  top: 16px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.static-box {
   border-style: dashed;
 }
 
 /* heap */
 
-.heap-objects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 28px 32px;
-  align-items: flex-start;
+.heap-card {
+  min-width: 150px;
+  max-width: 460px;
+  transition: opacity 0.3s;
 }
 
-.heap-card {
-  min-width: 140px;
-  transition: opacity 0.3s;
+.heap-card.pooled {
+  background: var(--pool);
+  border-color: var(--pool-border);
+}
+
+.heap-card.pooled .heap-head {
+  background: transparent;
+  border-bottom-color: var(--pool-border);
+}
+
+.badge.pool-badge {
+  background: var(--pool-border);
+  color: var(--text);
 }
 
 .heap-card.garbage {
@@ -497,14 +589,6 @@ select {
   padding: 6px 10px;
   font-family: ui-monospace, Menlo, monospace;
   color: var(--null);
-}
-
-.pool {
-  margin-top: 20px;
-  padding: 0 12px 12px;
-  border: 1px solid var(--pool-border);
-  border-radius: 10px;
-  background: var(--pool);
 }
 
 .array-cells {
@@ -534,41 +618,45 @@ select {
   font-size: 13px;
 }
 
-.collected {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--muted);
-}
+/* arrows (React Flow edges) */
 
-/* arrows */
-
-.arrows {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.arrow {
+.jmv-edge {
   fill: none;
-  stroke: var(--ref);
   stroke-width: 1.8;
-  opacity: 0.85;
+  transition: opacity 0.15s, stroke-width 0.15s;
 }
 
-.arrow.faded {
+.jmv-edge-normal {
+  stroke: var(--ref);
+  opacity: 0.55;
+}
+
+.jmv-edge-current {
+  stroke: var(--ref);
+  opacity: 0.95;
+}
+
+.jmv-edge-faded {
   stroke: var(--garbage);
   stroke-dasharray: 4 4;
   opacity: 0.6;
 }
 
-.arrowhead {
+.react-flow__edge.dim .jmv-edge {
+  opacity: 0.1;
+}
+
+.react-flow__edge.hl .jmv-edge {
+  opacity: 1;
+  stroke-width: 2.8;
+}
+
+.arrowhead-normal,
+.arrowhead-current {
   fill: var(--ref);
 }
 
-.arrowhead.faded {
+.arrowhead-faded {
   fill: var(--garbage);
 }
 
@@ -678,4 +766,53 @@ tr.flash td {
   margin: 0 1px;
   vertical-align: text-bottom;
   background: var(--accent);
+}
+
+/* memory regions: every card says where it lives, wherever it is dragged */
+
+.region-stack {
+  border-left: 4px solid var(--region-stack);
+}
+
+.region-heap {
+  border-left: 4px solid var(--region-heap);
+}
+
+.region-static {
+  border-left: 4px solid var(--region-static);
+}
+
+.region-tag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.region-tag-stack {
+  background: var(--region-stack);
+}
+
+.region-tag-heap {
+  background: var(--region-heap);
+}
+
+.region-tag-static {
+  background: var(--region-static);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .region-tag {
+    color: #0b1220;
+  }
+}
+
+:root[data-theme='dark'] .region-tag {
+  color: #0b1220;
 }

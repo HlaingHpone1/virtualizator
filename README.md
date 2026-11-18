@@ -19,6 +19,11 @@ npm run build
 ```
 
 Keys: `←` `→` step, `Space` play or pause, `Home` `End`.
+The memory view is a [React Flow](https://reactflow.dev) canvas:
+- **Drag a card by its header** to rearrange it, scroll to zoom, and drag the background to pan.
+- Dragged positions are remembered per example, including across reloads.
+- **Auto layout** forgets them and arranges the cards again.
+- Hover over a card to highlight its arrows.
 Link to a specific moment with `#example=<id>&step=<n>`, e.g. `#example=aliasing&step=8`.
 
 ## How it works
@@ -33,7 +38,7 @@ The interpreter (`src/runtime/interpreter.ts`) runs the whole program up front a
 | --- | --- |
 | `src/lang/` | Lexer and recursive-descent parser for a Java subset |
 | `src/runtime/` | Values, heap (with String pool), stack frames, mark-and-sweep GC, interpreter |
-| `src/ui/` | Editor (CodeMirror), stack and heap panels, SVG reference arrows, controls |
+| `src/ui/` | Editor (CodeMirror), controls, and the memory canvas: `memoryGraph.ts` turns a snapshot into React Flow nodes/edges with a depth-based auto layout, `flow/` has the card and arrow components |
 | `src/examples/` | Built-in teaching programs |
 
 ## Supported Java subset
